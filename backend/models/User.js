@@ -24,36 +24,16 @@ const userSchema = new mongoose.Schema({
   },
   phone: {
     type: String,
-    default: '',
-    validate: {
-      validator: function(v) {
-        return !v || validator.isMobilePhone(v);
-      },
-      message: 'Please provide a valid phone number'
-    }
+    default: ''
   },
   address: {
-    line1: {
-      type: String,
-      default: ''
-    },
-    line2: {
-      type: String,
-      default: ''
-    }
-  },
-  gender: {
-    type: String,
-    enum: ['Male', 'Female', 'Other', ''],
-    default: ''
-  },
-  dob: {
-    type: Date,
-    default: null
-  },
-  profileImage: {
     type: String,
     default: ''
+  },
+  role: {
+    type: String,
+    enum: ['patient', 'doctor', 'admin'],
+    default: 'patient'
   }
 }, {
   timestamps: true

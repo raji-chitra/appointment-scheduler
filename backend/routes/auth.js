@@ -10,12 +10,12 @@ const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
 };
 
-// @route   POST /api/auth/signup
+// @route   POST /api/auth/register
 // @desc    Register a new user
 // @access  Public
-router.post('/signup', async (req, res) => {
+router.post('/register', async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role, phone, address, gender, dob } = req.body;
 
     // Validation
     if (!name || !email || !password) {
@@ -34,11 +34,22 @@ router.post('/signup', async (req, res) => {
       });
     }
 
+    // Allowed roles
+    const validRoles = ['patient', 'doctor', 'admin'];
+    const resolvedRole = validRoles.includes((role || '').toLowerCase())
+      ? role.toLowerCase()
+      : 'patient';
+
     // Create new user
     const user = new User({
       name: name.trim(),
       email: email.toLowerCase().trim(),
-      password
+      password,
+      phone,
+      address,
+      gender,
+      dob,
+      role: resolvedRole
     });
 
     await user.save();
@@ -57,15 +68,15 @@ router.post('/signup', async (req, res) => {
         phone: user.phone,
         address: user.address,
         gender: user.gender,
-        dob: user.dob
+        dob: user.dob,
+        role: user.role
       }
     });
-
   } catch (error) {
-    console.error('Signup error:', error);
+    console.error('Register error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error during signup',
+      message: 'Server error during registration',
       error: error.message
     });
   }
@@ -78,7 +89,6 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validation
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -86,7 +96,6 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Find user
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
       return res.status(400).json({
@@ -95,7 +104,6 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(400).json({
@@ -104,7 +112,6 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Generate token
     const token = generateToken(user._id);
 
     res.json({
@@ -118,10 +125,10 @@ router.post('/login', async (req, res) => {
         phone: user.phone,
         address: user.address,
         gender: user.gender,
-        dob: user.dob
+        dob: user.dob,
+        role: user.role
       }
     });
-
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({
@@ -146,7 +153,8 @@ router.get('/me', auth, async (req, res) => {
         phone: req.user.phone,
         address: req.user.address,
         gender: req.user.gender,
-        dob: req.user.dob
+        dob: req.user.dob,
+        role: req.user.role
       }
     });
   } catch (error) {
@@ -173,11 +181,10 @@ router.put('/profile', auth, async (req, res) => {
     if (gender !== undefined) updateData.gender = gender;
     if (dob !== undefined) updateData.dob = dob;
 
-    const user = await User.findByIdAndUpdate(
-      req.user._id,
-      updateData,
-      { new: true, runValidators: true }
-    );
+    const user = await User.findByIdAndUpdate(req.user._id, updateData, {
+      new: true,
+      runValidators: true
+    });
 
     res.json({
       success: true,
@@ -189,10 +196,10 @@ router.put('/profile', auth, async (req, res) => {
         phone: user.phone,
         address: user.address,
         gender: user.gender,
-        dob: user.dob
+        dob: user.dob,
+        role: user.role
       }
     });
-
   } catch (error) {
     console.error('Update profile error:', error);
     res.status(500).json({
