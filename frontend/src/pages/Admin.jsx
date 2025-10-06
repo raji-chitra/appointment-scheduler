@@ -107,58 +107,53 @@ const Admin = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4">
         <h1 className="text-3xl font-bold text-gray-800 mb-6">Doctor Panel</h1>
-        
+
         {/* Filter Section */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <h2 className="text-xl font-semibold mb-4">Appointment Filters</h2>
           <div className="flex flex-wrap gap-4">
             <button
               onClick={() => setFilterStatus('all')}
-              className={`px-4 py-2 rounded-full ${
-                filterStatus === 'all'
+              className={`px-4 py-2 rounded-full ${filterStatus === 'all'
                   ? 'bg-primary text-white'
                   : 'bg-gray-200 text-gray-700'
-              }`}
+                }`}
             >
               All Appointments
             </button>
             <button
               onClick={() => setFilterStatus('pending')}
-              className={`px-4 py-2 rounded-full ${
-                filterStatus === 'pending'
+              className={`px-4 py-2 rounded-full ${filterStatus === 'pending'
                   ? 'bg-yellow-500 text-white'
                   : 'bg-gray-200 text-gray-700'
-              }`}
+                }`}
             >
               Pending
             </button>
             <button
               onClick={() => setFilterStatus('confirmed')}
-              className={`px-4 py-2 rounded-full ${
-                filterStatus === 'confirmed'
+              className={`px-4 py-2 rounded-full ${filterStatus === 'confirmed'
                   ? 'bg-green-500 text-white'
                   : 'bg-gray-200 text-gray-700'
-              }`}
+                }`}
             >
               Confirmed
             </button>
             <button
               onClick={() => setFilterStatus('completed')}
-              className={`px-4 py-2 rounded-full ${
-                filterStatus === 'completed'
+              className={`px-4 py-2 rounded-full ${filterStatus === 'completed'
                   ? 'bg-blue-500 text-white'
                   : 'bg-gray-200 text-gray-700'
-              }`}
+                }`}
             >
               Completed
             </button>
             <button
               onClick={() => setFilterStatus('cancelled')}
-              className={`px-4 py-2 rounded-full ${
-                filterStatus === 'cancelled'
+              className={`px-4 py-2 rounded-full ${filterStatus === 'cancelled'
                   ? 'bg-red-500 text-white'
                   : 'bg-gray-200 text-gray-700'
-              }`}
+                }`}
             >
               Cancelled
             </button>
@@ -170,7 +165,7 @@ const Admin = () => {
           <h2 className="text-xl font-semibold p-6 border-b">
             My Appointments ({filteredAppointments.length})
           </h2>
-          
+
           {filteredAppointments.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
               No appointments found for the selected filter.

@@ -1,23 +1,27 @@
-import React, { useContext, useState } from 'react'
-import { AppointmentsContext } from '../App'
-import { AuthContext } from '../App'
+import React, { useContext, useEffect, useState } from 'react'
+import { AppContext } from '../context/AppContext'
 
 const MyAppointments = () => {
-  const { appointments, doctors, updateAppointmentStatus } = useContext(AppointmentsContext)
-  const { user } = useContext(AuthContext)
+  const { appointments, getMyAppointments, cancelAppointment, userData } = useContext(AppContext)
   const [cancellingId, setCancellingId] = useState(null)
 
+  useEffect(() => {
+    // Check for userData in context or localStorage
+    const storedUserData = !userData && localStorage.getItem('userData') ? JSON.parse(localStorage.getItem('userData')) : null;
+    const currentUserData = userData || storedUserData;
+    
+    if (currentUserData) {
+      getMyAppointments();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Filter appointments for current user
-  const userAppointments = appointments.filter(appt => appt.patientId === user.id)
+  const userAppointments = Array.isArray(appointments) ? appointments : []
 
   const canCancelAppointment = (appointmentDate, appointmentTime) => {
-    const appointmentDateTime = new Date(`${appointmentDate}T${appointmentTime}:00`)
-    const currentDateTime = new Date()
-    const timeDifference = appointmentDateTime - currentDateTime
-    const hoursDifference = timeDifference / (1000 * 60 * 60)
-    
-    // Allow cancellation if more than 24 hours remaining
-    return hoursDifference > 24
+    // Always allow cancellation for appointments in the future
+    return true
   }
 
   const handleCancelAppointment = async (appointmentId, appointmentDate, appointmentTime) => {
@@ -28,9 +32,15 @@ const MyAppointments = () => {
 
     setCancellingId(appointmentId)
     
-    if (window.confirm('Are you sure you want to cancel this appointment?')) {
-      updateAppointmentStatus(appointmentId, 'cancelled')
-      alert('Appointment cancelled successfully!')
+    try {
+      if (window.confirm('Are you sure you want to cancel this appointment?')) {
+        const res = await cancelAppointment(appointmentId)
+        if (res?.success) alert('Appointment cancelled successfully!')
+        else alert(res?.message || 'Failed to cancel appointment')
+      }
+    } catch (e) {
+      console.error(e)
+      alert('Failed to cancel appointment')
     }
     
     setCancellingId(null)
@@ -51,7 +61,12 @@ const MyAppointments = () => {
     )
   }
 
-  if (!user) {
+  // Check for userData in context or localStorage
+  const storedUserData = !userData && localStorage.getItem('userData') ? JSON.parse(localStorage.getItem('userData')) : null;
+  const currentUserData = userData || storedUserData;
+  
+  // Only show login message if no user data is found anywhere
+  if (!currentUserData) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center">
         <div className="text-center">
@@ -78,21 +93,29 @@ const MyAppointments = () => {
       ) : (
         <div className="grid gap-6">
           {userAppointments.map((appt) => {
-            const doctor = doctors.find(doc => doc._id === appt.doctorId)
-            const canCancel = canCancelAppointment(appt.date, appt.time) && appt.status === 'confirmed'
+            const doctor = appt.doctor || {}
+            const canCancel = canCancelAppointment(appt.date, appt.time) && (appt.status === 'scheduled' || appt.status === 'confirmed')
             
             return (
-              <div key={appt.id} className="bg-white p-6 rounded-lg shadow-md">
+              <div key={appt._id || appt.id} className="bg-white p-6 rounded-lg shadow-md">
                 <div className="flex items-center mb-4">
-                  <img src={doctor?.image || 'https://via.placeholder.com/60'} alt={doctor?.name} className="w-16 h-16 rounded-full mr-4" />
+                  <img 
+  src={doctor?.image ? (doctor.image.startsWith('http') ? doctor.image : `http://localhost:5000${doctor.image}`) : '/src/assets/doc1.png'} 
+  alt={doctor?.name || 'Doctor'} 
+  className="w-16 h-16 rounded-full mr-4" 
+  onError={(e) => {
+    e.target.onerror = null;
+    e.target.src = '/src/assets/doc1.png';
+  }}
+/>
                   <div className="flex-1">
                     <h3 className="font-semibold text-lg">{doctor?.name || 'Unknown Doctor'}</h3>
-                    <p className="text-gray-600">{doctor?.speciality || 'General Physician'}</p>
-                    <p className="text-sm text-gray-500">{doctor?.degree || 'MD'}</p>
+                    <p className="text-gray-600">{doctor?.specialization || doctor?.speciality || 'General Physician'}</p>
+                    <p className="text-sm text-gray-500">{doctor?.degree || ''}</p>
                   </div>
                   <div className="text-right">
                     {getStatusBadge(appt.status)}
-                    <p className="text-sm text-gray-500 mt-1">Fee: ${doctor?.fees || 'N/A'}</p>
+                    <p className="text-sm text-gray-500 mt-1">Fee: ₹{doctor?.fees || 'N/A'}</p>
                   </div>
                 </div>
                 
@@ -103,11 +126,11 @@ const MyAppointments = () => {
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Reason</p>
-                    <p className="font-medium">{appt.reason}</p>
+                    <p className="font-medium">{appt.symptoms || appt.reason}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Contact</p>
-                    <p className="font-medium">{appt.phone}</p>
+                    <p className="font-medium">{appt.phone || '-'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Booked On</p>
@@ -117,15 +140,15 @@ const MyAppointments = () => {
                   </div>
                 </div>
 
-                {appt.status === 'confirmed' && (
+                {(appt.status === 'scheduled' || appt.status === 'confirmed') && (
                   <div className="flex gap-3">
                     {canCancel ? (
                       <button
-                        onClick={() => handleCancelAppointment(appt.id, appt.date, appt.time)}
-                        disabled={cancellingId === appt.id}
+                        onClick={() => handleCancelAppointment(appt._id || appt.id, appt.date, appt.time)}
+                        disabled={cancellingId === (appt._id || appt.id)}
                         className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 disabled:bg-red-300"
                       >
-                        {cancellingId === appt.id ? 'Cancelling...' : 'Cancel Appointment'}
+                        {cancellingId === (appt._id || appt.id) ? 'Cancelling...' : 'Cancel Appointment'}
                       </button>
                     ) : (
                       <p className="text-sm text-red-600">

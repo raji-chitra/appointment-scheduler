@@ -220,6 +220,20 @@ export const adminAPI = {
   }
 };
 
+// Public API - endpoints accessible without admin auth
+export const publicAPI = {
+  getDoctors: async () => {
+    try {
+      const response = await API.get('/doctors');
+      return response.data;
+    } catch (error) {
+      console.error('Public API getDoctors error:', error);
+      if (error.response?.data) return error.response.data;
+      return { success: false, message: error.message || 'Network error occurred' };
+    }
+  }
+};
+
 // Health check
 export const healthCheck = async () => {
   try {

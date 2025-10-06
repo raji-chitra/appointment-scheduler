@@ -1,11 +1,16 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import axios from 'axios'
 
 const BookAppointment = () => {
   const navigate = useNavigate()
   const { doctorId } = useParams()
+  // Get doctors from localStorage, handle both formats
   const doctors = JSON.parse(localStorage.getItem('doctors') || '[]')
-  const doctor = doctors.find(d => d._id === doctorId)
+  const doctor = doctors.find(d => String(d._id) === String(doctorId))
+  
+  // If doctor not found in localStorage, try to fetch it directly
+  const [loading, setLoading] = useState(doctor ? false : true)
 
   const currentUser = JSON.parse(localStorage.getItem('user'))
 
@@ -16,33 +21,61 @@ const BookAppointment = () => {
     contact: ''
   })
 
-  if (!doctor) return <div>Doctor not found</div>
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-
-    const appointments = JSON.parse(localStorage.getItem('appointments') || '[]')
-
-    const newAppointment = {
-      id: Math.random().toString(36).substr(2, 9),
-      patientId: currentUser.id,
-      doctorId: doctor._id,          // IMPORTANT: use _id here
-      doctorName: doctor.name,
-      specialization: doctor.speciality,
-      date: formData.date,
-      time: formData.time,
-      reason: formData.reason,
-      contact: formData.contact,
-      status: 'confirmed',
-      fee: doctor.fee || 'N/A',
-      bookedOn: new Date().toLocaleDateString(),
+  // Add useEffect to fetch doctor if not found in localStorage
+  useEffect(() => {
+    if (!doctor && doctorId) {
+      const fetchDoctor = async () => {
+        try {
+          const response = await axios.get(`http://localhost:5000/api/doctors/${doctorId}`)
+          if (response.data.success && response.data.doctor) {
+            // Update doctors in localStorage with this doctor
+            const updatedDoctors = [...doctors]
+            updatedDoctors.push(response.data.doctor)
+            localStorage.setItem('doctors', JSON.stringify(updatedDoctors))
+            setLoading(false)
+          }
+        } catch (err) {
+          console.error('Error fetching doctor:', err)
+          setLoading(false)
+        }
+      }
+      fetchDoctor()
     }
+  }, [doctorId, doctor])
 
-    appointments.push(newAppointment)
-    localStorage.setItem('appointments', JSON.stringify(appointments))
+  if (loading) return <div className="max-w-md mx-auto mt-10 p-8">Loading doctor information...</div>
+  if (!doctor) return <div className="max-w-md mx-auto mt-10 p-8">Doctor not found</div>
+  
+  // Format image URL correctly
+  const doctorImage = doctor.image ? 
+    (doctor.image.startsWith('http') ? doctor.image : `http://localhost:5000${doctor.image}`) : 
+    '/src/assets/doc1.png'
 
-    alert('Appointment booked successfully!')
-    navigate('/my-appointments')
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      const token = localStorage.getItem('token')
+      if (!token) {
+        alert('Please login first')
+        navigate('/patient-auth')
+        return
+      }
+      const res = await axios.post('http://localhost:5000/api/appointments/book', {
+        doctor: doctorId,
+        date: formData.date,
+        time: formData.time,
+        symptoms: formData.reason
+      }, { headers: { Authorization: `Bearer ${token}` } })
+
+      if (res.data.success) {
+        alert('Appointment booked successfully!')
+        navigate('/my-appointments')
+      } else {
+        alert(res.data.message || 'Failed to book appointment')
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Something went wrong')
+    }
   }
 
   return (

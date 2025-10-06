@@ -35,8 +35,8 @@ const PatientAuth = () => {
 
         if (response.data.success) {
           localStorage.setItem('token', response.data.token);
-          localStorage.setItem('user', JSON.stringify(response.data.user));
-          navigate(from);
+          localStorage.setItem('userData', JSON.stringify(response.data.user));
+          navigate('/doctors');
         }
       } else {
         // SIGN UP - Check password match first
@@ -53,8 +53,6 @@ const PatientAuth = () => {
           phone: formData.phone,
           address: formData.address
         });
-
-        console.log('Signup response:', response.data);
 
         if (response.data.success) {
           alert('Signup successful! Please login with your credentials.');
@@ -77,7 +75,7 @@ const PatientAuth = () => {
       if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
         setError('Cannot connect to server. Make sure backend is running on port 5000.');
       } else {
-        setError(error.response?.data?.error || 'Something went wrong. Please try again.');
+        setError(error.response?.data?.message || error.response?.data?.error || 'Something went wrong. Please try again.');
       }
     } finally {
       setLoading(false);

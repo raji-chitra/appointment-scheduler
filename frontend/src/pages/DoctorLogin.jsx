@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const DoctorLogin = () => {
   const navigate = useNavigate();
@@ -12,28 +13,28 @@ const DoctorLogin = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    // Get existing users from localStorage
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    
-    // Login logic
-    const user = users.find(u => u.email === formData.email && u.password === formData.password && u.role === 'doctor');
-    
-    if (!user) {
-      setError('Invalid email or password');
+    try {
+      const res = await axios.post('http://localhost:5000/api/auth/login', {
+        email: formData.email,
+        password: formData.password
+      });
+      if (res.data.success && res.data.user?.role === 'doctor') {
+        localStorage.setItem('token', res.data.token);
+        localStorage.setItem('userData', JSON.stringify(res.data.user));
+        navigate('/doctor-dashboard');
+      } else {
+        setError('Invalid doctor credentials');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Login failed');
+    } finally {
       setLoading(false);
-      return;
     }
-
-    localStorage.setItem('user', JSON.stringify(user));
-    localStorage.setItem('token', user.token);
-    navigate('/doctor-dashboard');
-
-    setLoading(false);
   };
 
   return (

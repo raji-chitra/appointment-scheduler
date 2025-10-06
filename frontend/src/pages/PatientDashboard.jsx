@@ -27,50 +27,64 @@ const PatientDashboard = () => {
 
   useEffect(() => {
     const token = localStorage.getItem('token')
-    const userData = localStorage.getItem('user')
+    const userData = localStorage.getItem('userData')
 
     if (!token || !userData) {
       navigate('/patient-auth')
       return
     }
 
-    const parsedUser = JSON.parse(userData)
-    setUser(parsedUser)
+    try {
+      const parsedUser = JSON.parse(userData)
+      setUser(parsedUser)
 
-    const fetchAppointments = async () => {
-      try {
-        setLoading(true)
-        const response = await axios.get(
-          `http://localhost:5000/api/appointments/my-appointments?patientId=${parsedUser._id}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        )
-
-        if (response.data.success) {
-          const allAppointments = response.data.appointments
-          setAppointments(allAppointments)
-
-          const now = new Date()
-          const upcomingAppts = allAppointments.filter(
-            appt => new Date(appt.date) >= now && appt.status === 'scheduled'
-          )
-          const completedAppts = allAppointments.filter(
-            appt => appt.status === 'completed'
+      const fetchAppointments = async () => {
+        try {
+          setLoading(true)
+          const response = await axios.get(
+            `http://localhost:5000/api/appointments/my-appointments?patientId=${parsedUser._id}`,
+            { headers: { Authorization: `Bearer ${token}` } }
           )
 
-          setStats({
-            total: allAppointments.length,
-            upcoming: upcomingAppts.length,
-            completed: completedAppts.length
-          })
+          if (response.data.success) {
+            const allAppointments = response.data.appointments
+            setAppointments(allAppointments)
+
+            const now = new Date()
+            const upcomingAppts = allAppointments.filter(
+              appt => new Date(appt.date) >= now && appt.status === 'scheduled'
+            )
+            const completedAppts = allAppointments.filter(
+              appt => appt.status === 'completed'
+            )
+
+            setStats({
+              total: allAppointments.length,
+              upcoming: upcomingAppts.length,
+              completed: completedAppts.length
+            })
+          }
+        } catch (error) {
+          console.error('Error fetching appointments:', error)
+          // Don't set loading to false here, do it in finally
+        } finally {
+          setLoading(false)
         }
-      } catch (error) {
-        console.error('Error fetching appointments:', error)
-      } finally {
-        setLoading(false)
       }
-    }
 
-    fetchAppointments()
+      // Ensure user data is valid before fetching appointments
+      if (parsedUser && parsedUser._id) {
+        fetchAppointments()
+      } else {
+        setLoading(false)
+        console.error('Invalid user data')
+      }
+    } catch (error) {
+      console.error('Error parsing user data:', error)
+      setLoading(false)
+      // If there's an error parsing user data, redirect to login
+      navigate('/patient-auth')
+    }
   }, [navigate])
 
   if (!user) {

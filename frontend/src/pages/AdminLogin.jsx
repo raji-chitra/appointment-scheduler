@@ -1,39 +1,40 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
-    email: 'admin@prescripto.com',
+    email: 'rajalakshmi@gmail.com',
     password: 'admin123'
   });
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    // Get existing users from localStorage
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    
-    // Login logic
-    const user = users.find(u => u.email === formData.email && u.password === formData.password && u.role === 'admin');
-    
-    if (!user) {
-      setError('Invalid email or password');
+    try {
+      const res = await axios.post('http://localhost:5000/api/admin/login', {
+        email: formData.email,
+        password: formData.password
+      });
+      if (res.data.success) {
+        localStorage.setItem('adminToken', res.data.token);
+        localStorage.setItem('adminUser', JSON.stringify(res.data.user));
+        navigate('/admin-dashboard');
+      } else {
+        setError(res.data.message || 'Invalid credentials');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Login failed');
+    } finally {
       setLoading(false);
-      return;
     }
-
-    localStorage.setItem('user', JSON.stringify(user));
-    localStorage.setItem('token', user.token);
-    navigate('/admin-dashboard');
-
-    setLoading(false);
   };
 
   return (
@@ -103,9 +104,7 @@ const AdminLogin = () => {
         </form>
 
         <div className="text-center">
-          <p className="text-xs text-gray-500">
-            Demo credentials: admin@prescripto.com / admin123
-          </p>
+          <p className="text-xs text-gray-500">Use your configured admin account</p>
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import { createContext, useState, useEffect } from "react";
-import { doctors } from "../assets/assets";
-import { authAPI, appointmentsAPI } from "../services/api";
+import { doctors as localDoctors } from "../assets/assets";
+import { authAPI, appointmentsAPI, publicAPI } from "../services/api";
 import { toast } from 'react-toastify';
 
 export const AppContext = createContext()
@@ -173,7 +173,10 @@ const AppContextProvider = (props) => {
 
     // Get user's appointments
     const getMyAppointments = async () => {
-        if (!token) {
+        // Check for token in state or localStorage
+        const storedToken = !token && localStorage.getItem('token') ? localStorage.getItem('token') : token;
+        
+        if (!storedToken) {
             console.log('No token available, skipping appointment fetch')
             return []
         }
@@ -290,6 +293,31 @@ const AppContextProvider = (props) => {
             getMyAppointments()
         }
     }, [token, userData])
+
+    const [doctors, setDoctors] = useState([])
+
+    useEffect(() => {
+        (async () => {
+            try {
+                const res = await publicAPI.getDoctors()
+                if (res.success && Array.isArray(res.doctors) && res.doctors.length > 0) {
+                    setDoctors(res.doctors)
+                    // Store doctors in localStorage for BookAppointment page
+                    localStorage.setItem('doctors', JSON.stringify(res.doctors))
+                } else {
+                    console.warn('No doctors returned from API, using fallback data')
+                    setDoctors(localDoctors)
+                    // Store fallback doctors in localStorage
+                    localStorage.setItem('doctors', JSON.stringify(localDoctors))
+                }
+            } catch (e) {
+                console.error('Failed to load doctors', e)
+                setDoctors(localDoctors)
+                // Store fallback doctors in localStorage
+                localStorage.setItem('doctors', JSON.stringify(localDoctors))
+            }
+        })()
+    }, [])
 
     const value = {
         doctors,

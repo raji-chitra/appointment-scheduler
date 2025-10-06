@@ -7,8 +7,10 @@ const RoleSelection = () => {
   const handleRoleSelect = (role) => {
     if (role === 'patient') {
       navigate('/patient-auth')
-    } else {
-      navigate('/login', { state: { role } })
+    } else if (role === 'doctor') {
+      navigate('/doctor-login')
+    } else if (role === 'admin') {
+      navigate('/admin-login')
     }
   }
 

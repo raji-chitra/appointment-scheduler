@@ -4,21 +4,51 @@ import { AppContext } from '../context/AppContext'
 
 const Appointment = () => {
   const { docId } = useParams()
-  const { doctors, addAppointment, user } = useContext(AppContext)  // ✅ all from AppContext
+  const { doctors, bookAppointment, userData } = useContext(AppContext)
   const navigate = useNavigate()
 
   // Redirect to login if user is not authenticated
   useEffect(() => {
-    if (!user && !localStorage.getItem('token')) {
+    // Check if we have userData in context or localStorage
+    const hasToken = localStorage.getItem('token');
+    const hasUserData = userData || localStorage.getItem('userData');
+    
+    if (!hasUserData && !hasToken) {
       navigate('/patient-auth', { state: { from: `/appointment/${docId}` } });
       return;
     }
-  }, [user, navigate, docId]);
+    
+    // If we have userData in localStorage but not in context, try to load it
+    if (!userData && localStorage.getItem('userData')) {
+      try {
+        const storedUserData = JSON.parse(localStorage.getItem('userData'));
+        if (storedUserData && storedUserData.name) {
+          setFormData(prev => ({ ...prev, name: storedUserData.name }));
+        }
+      } catch (error) {
+        console.error('Error parsing userData from localStorage:', error);
+      }
+    }
+  }, [userData, navigate, docId]);
 
-  const doctor = doctors.find(d => d._id === docId)
+  const doctor = doctors.find(d => String(d._id) === String(docId))
 
+  // Try to get userData from localStorage if not available in context
+  const getUserDataFromStorage = () => {
+    if (userData) return userData;
+    try {
+      const storedUserData = localStorage.getItem('userData');
+      return storedUserData ? JSON.parse(storedUserData) : null;
+    } catch (error) {
+      console.error('Error parsing userData from localStorage:', error);
+      return null;
+    }
+  };
+  
+  const storedUserData = getUserDataFromStorage();
+  
   const [formData, setFormData] = useState({
-    name: user?.name || '',
+    name: storedUserData?.name || '',
     phone: '',
     date: '',
     time: '',
@@ -30,8 +60,8 @@ const Appointment = () => {
   const [availableSlots, setAvailableSlots] = useState([])
 
   useEffect(() => {
-    if (user && user.name) {
-      setFormData(prev => ({ ...prev, name: user.name }))
+    if (userData && userData.name) {
+      setFormData(prev => ({ ...prev, name: userData.name }))
     }
 
     // Set minimum date to tomorrow
@@ -40,19 +70,23 @@ const Appointment = () => {
     setMinDate(tomorrow.toISOString().split('T')[0])
 
     generateTimeSlots()
-  }, [user])
+  }, [userData])
 
   const generateTimeSlots = () => {
     const slots = []
     for (let hour = 9; hour <= 17; hour++) {
       if (hour === 12) continue // Skip lunch
-      slots.push(`${hour}:00`)
-      if (hour < 17) slots.push(`${hour}:30`)
+      const amPm = hour >= 12 ? 'PM' : 'AM'
+      const hour12 = hour > 12 ? hour - 12 : hour
+      slots.push(`${hour12}:00 ${amPm}`)
+      if (hour < 17) slots.push(`${hour12}:30 ${amPm}`)
     }
     setAvailableSlots(slots)
   }
 
   const validatePhone = (phone) => /^\d{10}$/.test(phone)
+
+  const isValidObjectId = (id) => /^[a-f\d]{24}$/i.test(id)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -67,24 +101,31 @@ const Appointment = () => {
 
     setErrors({})
 
+    if (!isValidObjectId(docId)) {
+      alert('Selected doctor is from demo data. Please ask admin to add this doctor first, then try again.')
+      return
+    }
+
+    // Check if we have userData from context or try to get it from localStorage
+    const userDataFromStorage = !userData && localStorage.getItem('userData') ? JSON.parse(localStorage.getItem('userData')) : null;
+    const currentUserData = userData || userDataFromStorage;
+    
+    // Make sure we have user data before proceeding
+    if (!currentUserData) {
+      alert('Please log in to book an appointment')
+      navigate('/patient-auth', { state: { from: `/appointment/${docId}` } })
+      return
+    }
+
     const appointment = {
-      doctor: docId, // Changed doctorId to doctor to match MongoDB schema
-      doctorName: doctor.name,
-      doctorImage: doctor.image,
-      doctorSpeciality: doctor.speciality,
-      patient: user?.id || "guest", // Changed patientId to patient to match MongoDB schema
-      patientName: formData.name,
-      phone: formData.phone,
+      doctor: docId,
       date: formData.date,
       time: formData.time,
-      symptoms: formData.reason, // Changed reason to symptoms to match MongoDB schema
-      status: 'confirmed',
-      createdAt: new Date().toISOString(),
-      fees: doctor.fees
+      symptoms: formData.reason
     }
 
     try {
-      const result = await addAppointment(appointment) // Made async/await for MongoDB integration
+      const result = await bookAppointment(appointment)
       
       if (result?.success) {
         alert('Appointment booked successfully!')
@@ -117,7 +158,15 @@ const Appointment = () => {
 
         {/* Doctor details */}
         <div className="flex items-center mb-6">
-          <img src={doctor.image} alt={doctor.name} className="w-16 h-16 rounded-full mr-4" />
+          <img 
+            src={doctor.image ? (doctor.image.startsWith('http') ? doctor.image : `http://localhost:5000${doctor.image}`) : '/src/assets/doc1.png'} 
+            alt={doctor.name} 
+            className="w-16 h-16 rounded-full mr-4" 
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = '/src/assets/doc1.png';
+            }}
+          />
           <div>
             <h3 className="font-semibold">{doctor.name}</h3>
             <p className="text-gray-600">{doctor.speciality}</p>

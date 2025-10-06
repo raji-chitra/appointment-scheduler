@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from "react";
 
 const MyProfile = () => {
-  const storedUser = JSON.parse(localStorage.getItem("user")) || {};
+  const storedUser = JSON.parse(localStorage.getItem("userData")) || {};
 
   const [formData, setFormData] = useState({
-    name: storedUser?.name || "",
-    email: storedUser?.email || "",
-    phone: storedUser?.phone || "",
+    name: storedUser?.name || "John Doe",
+    email: storedUser?.email || "user@example.com",
+    phone: storedUser?.phone || "1234567890",
     address: storedUser?.address || {
-      line1: "123 Default Street",
-      line2: "City, Country",
+      line1: "123 Main Street",
+      line2: "New York, USA",
     },
   });
 
@@ -70,7 +70,7 @@ const MyProfile = () => {
 
       // Save in localStorage
       const updatedUser = { ...storedUser, ...finalFormData };
-      localStorage.setItem("user", JSON.stringify(updatedUser));
+      localStorage.setItem("userData", JSON.stringify(updatedUser));
 
       alert("Profile updated successfully!");
       setIsEditing(false);

@@ -13,7 +13,7 @@ const generateToken = (userId) => {
 // @route   POST /api/auth/register
 // @desc    Register a new user
 // @access  Public
-router.post('/register', async (req, res) => {
+const registerHandler = async (req, res) => {
   try {
     const { name, email, password, role, phone, address, gender, dob } = req.body;
 
@@ -80,7 +80,13 @@ router.post('/register', async (req, res) => {
       error: error.message
     });
   }
-});
+  };
+
+  // POST /register (original)
+  router.post('/register', registerHandler);
+
+  // Alias POST /signup for frontend compatibility
+  router.post('/signup', registerHandler);
 
 // @route   POST /api/auth/login
 // @desc    Login user

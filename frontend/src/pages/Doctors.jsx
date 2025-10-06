@@ -6,7 +6,7 @@ const Doctors = () => {
   const { speciality } = useParams();
   const [filterDoc, setFilterDoc] = useState([]);
   const navigate = useNavigate();
-  const { doctors, user } = useContext(AppContext);
+  const { doctors, userData } = useContext(AppContext);
 
   // Apply filter
   // Helper to get label from slug
@@ -20,9 +20,10 @@ const Doctors = () => {
     if (speciality) {
       const label = getLabelFromSlug(speciality);
       setFilterDoc(
-        doctors.filter(
-          (doc) => doc.speciality.toLowerCase() === label.toLowerCase()
-        )
+        doctors.filter((doc) => {
+          const docSpeciality = (doc.specialization || doc.speciality || '').toLowerCase();
+          return docSpeciality === label.toLowerCase();
+        })
       );
     } else {
       setFilterDoc(doctors);
@@ -83,8 +84,12 @@ const Doctors = () => {
             >
               <img
                 className="w-full h-56 object-cover bg-blue-50"
-                src={item.image}
+                src={item.image ? (item.image.startsWith('http') ? item.image : `http://localhost:5000${item.image}`) : '/src/assets/doc1.png'}
                 alt={item.name}
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = '/src/assets/doc1.png';
+                }}
               />
               <div className="p-4">
                 <div className="flex items-center gap-2 text-sm text-green-500 mb-1">
@@ -94,7 +99,7 @@ const Doctors = () => {
                 <p className="text-gray-900 text-lg font-semibold">
                   {item.name}
                 </p>
-                <p className="text-gray-600 text-sm">{item.speciality}</p>
+                <p className="text-gray-600 text-sm">{item.specialization || item.speciality}</p>
               </div>
             </div>
           ))}
