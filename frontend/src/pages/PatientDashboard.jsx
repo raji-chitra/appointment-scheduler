@@ -41,8 +41,9 @@ const PatientDashboard = () => {
       const fetchAppointments = async () => {
         try {
           setLoading(true)
+          const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
           const response = await axios.get(
-            `http://localhost:5000/api/appointments/my-appointments?patientId=${parsedUser._id}`,
+            `${apiBase}/appointments/my-appointments?patientId=${parsedUser._id}`,
             { headers: { Authorization: `Bearer ${token}` } }
           )
 

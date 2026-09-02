@@ -3,7 +3,7 @@ import { toast } from 'react-toastify';
 
 // Create axios instance
 const API = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -40,18 +40,18 @@ API.interceptors.response.use(
       return Promise.reject(error);
     }
     
-    const rawMessage = error.response?.data?.message || 'Something went wrong'
-    const message = typeof rawMessage === 'string' ? rawMessage : JSON.stringify(rawMessage)
+    const rawMessage = error.response?.data?.message || 'Something went wrong';
+    const message = typeof rawMessage === 'string' ? rawMessage : JSON.stringify(rawMessage);
     // Diagnostic logging to help debug invalid toast payloads
     try {
-      console.log('API interceptor - toast payload type:', typeof message, 'payload:', message)
-      toast.error(message)
+      console.log('API interceptor - toast payload type:', typeof message, 'payload:', message);
+      toast.error(message);
     } catch (e) {
-      console.warn('toast.error failed to render message, falling back to string:', message, e)
+      console.warn('toast.error failed to render message, falling back to string:', message, e);
       try {
-        toast.error(String(message))
+        toast.error(String(message));
       } catch (e2) {
-        console.error('Secondary toast.error failed as well:', String(message), e2)
+        console.error('Secondary toast.error failed as well:', String(message), e2);
       }
     }
     
@@ -68,7 +68,6 @@ export const authAPI = {
       return response.data;
     } catch (error) {
       console.error('API Error during signup:', error);
-      // Return error response instead of throwing
       if (error.response?.data) {
         return error.response.data;
       }
@@ -83,7 +82,6 @@ export const authAPI = {
       return response.data;
     } catch (error) {
       console.error('API Error during login:', error);
-      // Return error response instead of throwing
       if (error.response?.data) {
         return error.response.data;
       }
@@ -134,6 +132,17 @@ export const appointmentsAPI = {
     }
   },
 
+  // Get booked slots for a doctor
+  getBookedSlots: async (doctorId, date) => {
+    try {
+      const response = await API.get(`/appointments/booked-slots/${doctorId}${date ? `?date=${date}` : ''}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching booked slots:', error);
+      return { success: false, bookedSlots: [] };
+    }
+  },
+
   // Cancel appointment
   cancelAppointment: async (appointmentId) => {
     try {
@@ -141,7 +150,6 @@ export const appointmentsAPI = {
       return response.data;
     } catch (error) {
       console.error('API Error during appointment cancellation:', error);
-      // Return error response instead of throwing
       if (error.response?.data) {
         return error.response.data;
       }
@@ -156,7 +164,6 @@ export const appointmentsAPI = {
       return response.data;
     } catch (error) {
       console.error('API Error during payment update:', error);
-      // Return error response instead of throwing
       if (error.response?.data) {
         return error.response.data;
       }

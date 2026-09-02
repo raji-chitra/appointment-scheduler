@@ -1,6 +1,12 @@
 import { useState, useContext, useEffect } from 'react'
 import { AppContext } from '../context/AppContext'
 import { toast } from 'react-toastify'
+import { 
+  validatePassword, 
+  getPasswordStrength, 
+  isPasswordValid, 
+  getPasswordRequirements 
+} from '../utils/passwordValidator'
 
 const Login = () => {
   const { signup, login, token } = useContext(AppContext)
@@ -60,9 +66,23 @@ const Login = () => {
       toast.error('Please enter your password')
       return
     }
-    if (password.length < 6) {
-      toast.error('Password must be at least 6 characters long')
-      return
+
+    // Enhanced password validation for signup
+    if (state === 'Sign Up') {
+      if (!isPasswordValid(password)) {
+        const requirements = getPasswordRequirements(password)
+        const missing = Object.entries(requirements)
+          .filter(([, req]) => !req.met)
+          .map(([, req]) => req.label)
+        toast.error(`Password must contain: ${missing.join(', ')}`)
+        return
+      }
+    } else {
+      // For login, keep minimum 6 chars for backward compatibility
+      if (password.length < 6) {
+        toast.error('Password must be at least 6 characters long')
+        return
+      }
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -238,7 +258,7 @@ const Login = () => {
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); setFormError('') }}
                   required
-                  minLength={6}
+                  minLength={state === 'Sign Up' ? 8 : 6}
                 />
                 <button type='button' onClick={() => setShowPassword(s => !s)} className='absolute right-2 top-2 p-1 cursor-pointer' aria-pressed={showPassword} aria-label={showPassword ? 'Hide password' : 'Show password'} title={showPassword ? 'Hide password' : 'Show password'}>
                   {showPassword ? (
@@ -256,7 +276,44 @@ const Login = () => {
                   )}
                 </button>
               </div>
-              {state === 'Sign Up' && <p className='text-xs text-gray-500 mt-1'>Password must be at least 6 characters long</p>}
+              
+              {/* Password Strength Indicator for Sign Up */}
+              {state === 'Sign Up' && password && (
+                <div className='mt-3 space-y-2'>
+                  {/* Strength Bar */}
+                  <div className='space-y-1'>
+                    <div className='flex justify-between items-center'>
+                      <p className='text-xs font-semibold text-gray-600'>Password Strength</p>
+                      <span className={`text-xs font-bold ${getPasswordStrength(password).color.replace('bg-', 'text-')}`}>
+                        {getPasswordStrength(password).label}
+                      </span>
+                    </div>
+                    <div className='w-full bg-gray-200 rounded-full h-2'>
+                      <div 
+                        className={`h-2 rounded-full transition-all ${getPasswordStrength(password).color}`}
+                        style={{ width: `${(getPasswordStrength(password).level / 4) * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  {/* Requirements Checklist */}
+                  <div className='space-y-1 text-xs'>
+                    {Object.entries(getPasswordRequirements(password)).map(([key, req]) => (
+                      <div key={key} className='flex items-center gap-2'>
+                        <span className={`w-4 h-4 rounded-full flex items-center justify-center text-white text-xs ${req.met ? 'bg-green-500' : 'bg-gray-300'}`}>
+                          {req.met ? '✓' : '○'}
+                        </span>
+                        <span className={req.met ? 'text-green-600 line-through' : 'text-gray-600'}>
+                          {req.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {state === 'Sign Up' && !password && <p className='text-xs text-gray-500 mt-1'>Password must be at least 8 characters with uppercase, lowercase, digit and special character</p>}
+              {state === 'Login' && <p className='text-xs text-gray-500 mt-1'>Password must be at least 6 characters long</p>}
             </div>
           </>
         )}

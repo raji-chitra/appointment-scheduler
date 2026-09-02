@@ -4,11 +4,13 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import AppContextProvider from './context/AppContext'
 import ErrorBoundary from './components/ErrorBoundary'
 import Home from './pages/Home'
+import HomeGate from './components/HomeGate'
 import RoleSelection from './components/RoleSelection'
 import PatientDashboard from './pages/PatientDashboard'
 import Login from './pages/Login'
 import DoctorLogin from './pages/DoctorLogin'
 import Doctors from './pages/Doctors'
+import DoctorDetails from './pages/DoctorDetails'
 import About from './pages/About'
 import Contact from './pages/Contact'
 import Appointment from './pages/Appointment'
@@ -29,7 +31,7 @@ const ProtectedPatientDashboard = () => (
 
 const Layout = ({ children }) => {
   const location = useLocation();
-  const hideNavbarPaths = ['/patient-auth', '/login', '/admin-login', '/role-selection', '/doctor-login']; // hide navbar for auth pages and role selection
+  const hideNavbarPaths = ['/', '/patient-auth', '/login', '/admin-login', '/role-selection', '/doctor-login'];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -46,7 +48,7 @@ const App = () => {
         <Layout>
           <ErrorBoundary>
           <Routes>
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<RoleSelection />} />
             <Route path="/home" element={<Home />} />
             <Route path="/role-selection" element={<RoleSelection />} />
             <Route path="/patient-auth" element={<PatientAuth />} />
@@ -55,6 +57,7 @@ const App = () => {
             <Route path="/doctor-login" element={<DoctorLogin />} />
             <Route path="/patient-dashboard" element={<ProtectedPatientDashboard />} />
             <Route path="/doctors" element={<Doctors />} />
+            <Route path="/doctor-details/:doctorId" element={<DoctorDetails />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/doctors/:speciality" element={<Doctors />} />

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import axios from 'axios'
+import { adminAPI } from '../services/api'
 
 const AdminDashboard = () => {
   const [doctors, setDoctors] = useState([])
@@ -13,6 +13,7 @@ const AdminDashboard = () => {
     experience: '',
     fees: '',
     degree: 'MBBS',
+    about: '',
     image: null
   })
   
@@ -41,11 +42,11 @@ const AdminDashboard = () => {
       }
       
       const [docRes, apptRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/admin/doctors', { headers: { Authorization: `Bearer ${adminToken}` } }),
-        axios.get('http://localhost:5000/api/admin/appointments', { headers: { Authorization: `Bearer ${adminToken}` } })
+        adminAPI.getDoctors(),
+        adminAPI.getAppointments()
       ])
-      if (docRes.data.success) setDoctors(docRes.data.doctors)
-      if (apptRes.data.success) setAppointments(apptRes.data.appointments)
+      if (docRes.success) setDoctors(docRes.doctors)
+      if (apptRes.success) setAppointments(apptRes.appointments)
     } catch (e) {
       console.error('Admin fetch failed', e)
       // If token is invalid, redirect to login
@@ -75,6 +76,7 @@ const AdminDashboard = () => {
       formData.append('specialization', (newDoctor.speciality || newDoctor.specialization || '').trim())
       formData.append('experience', Number(newDoctor.experience) || 0)
       formData.append('fees', Number(newDoctor.fees) || 0)
+      formData.append('about', newDoctor.about || '')
       formData.append('availability', JSON.stringify([]))
       formData.append('bio', '')
       
@@ -89,15 +91,10 @@ const AdminDashboard = () => {
         alert('Please enter a valid email')
         return
       }
-      const res = await axios.post('http://localhost:5000/api/admin/doctors', formData, { 
-        headers: { 
-          Authorization: `Bearer ${adminToken}`,
-          'Content-Type': 'multipart/form-data'
-        } 
-      })
-      if (res.data.success) {
+      const res = await adminAPI.addDoctor(formData)
+      if (res.success) {
         setShowAddDoctor(false)
-        setNewDoctor({ name: '', email: '', password: '', speciality: '', experience: '', fees: '', degree: 'MBBS', image: null })
+        setNewDoctor({ name: '', email: '', password: '', speciality: '', experience: '', fees: '', degree: 'MBBS', about: '', image: null })
         setImageFile(null)
         fetchData()
       }
@@ -130,6 +127,7 @@ const AdminDashboard = () => {
       experience: doctor.experience || '',
       fees: doctor.fees || '',
       degree: doctor.degree || 'MBBS',
+      about: doctor.about || '',
       image: doctor.image || '/src/assets/doc1.png'
     })
     setShowEditDoctor(true)
@@ -154,19 +152,15 @@ const AdminDashboard = () => {
       formData.append('specialization', editDoctor.speciality)
       formData.append('experience', Number(editDoctor.experience) || 0)
       formData.append('fees', Number(editDoctor.fees) || 0)
+      formData.append('about', editDoctor.about || '')
       formData.append('degree', editDoctor.degree)
       
       if (editImageFile) {
         formData.append('image', editImageFile)
       }
-      
-      const res = await axios.put(`http://localhost:5000/api/admin/doctors/${editDoctor.id}`, formData, { 
-        headers: { 
-          Authorization: `Bearer ${adminToken}`,
-          'Content-Type': 'multipart/form-data'
-        } 
-      })
-      if (res.data.success) {
+
+      const res = await adminAPI.updateDoctor(editDoctor.id, formData)
+      if (res.success) {
         setShowEditDoctor(false)
         setEditDoctor(null)
         fetchData()
@@ -197,7 +191,7 @@ const AdminDashboard = () => {
     }
     
     try {
-      await axios.delete(`http://localhost:5000/api/admin/doctors/${doctorId}`, { headers: { Authorization: `Bearer ${adminToken}` } })
+      await adminAPI.removeDoctor(doctorId)
       fetchData()
     } catch (e) { 
       console.error('Remove doctor failed', e)
@@ -303,6 +297,13 @@ const AdminDashboard = () => {
                 onChange={(e) => setNewDoctor({...newDoctor, degree: e.target.value})}
                 className="p-2 border rounded"
               />
+              <textarea
+                placeholder="About Doctor (e.g., specialty, experience summary)"
+                value={newDoctor.about}
+                onChange={(e) => setNewDoctor({...newDoctor, about: e.target.value})}
+                className="p-2 border rounded md:col-span-2"
+                rows="2"
+              />
               <div className="p-2 border rounded">
                 <label className="block mb-1 text-sm">Doctor Image</label>
                 <input
@@ -377,12 +378,19 @@ const AdminDashboard = () => {
                 onChange={(e) => setEditDoctor({...editDoctor, degree: e.target.value})}
                 className="p-2 border rounded"
               />
+              <textarea
+                placeholder="About Doctor (e.g., specialty, experience summary)"
+                value={editDoctor.about}
+                onChange={(e) => setEditDoctor({...editDoctor, about: e.target.value})}
+                className="p-2 border rounded md:col-span-2"
+                rows="2"
+              />
               <div className="p-2 border rounded">
                 <label className="block mb-1 text-sm">Doctor Image</label>
                 {editDoctor.image && (
                   <div className="mb-2">
                     <img 
-                      src={editDoctor.image.startsWith('http') ? editDoctor.image : `http://localhost:5000${editDoctor.image}`} 
+                      src={editDoctor.image.startsWith('http') ? editDoctor.image : `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}${editDoctor.image}`} 
                       alt="Doctor" 
                       className="h-20 w-20 object-cover rounded"
                     />
@@ -438,7 +446,7 @@ const AdminDashboard = () => {
                   <td className="px-4 py-3">
                     <div className="flex items-center">
                       <img 
-                        src={doctor.image ? (doctor.image.startsWith('http') ? doctor.image : `http://localhost:5000${doctor.image}`) : '/src/assets/doc1.png'} 
+                        src={doctor.image ? (doctor.image.startsWith('http') ? doctor.image : `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}${doctor.image}`) : '/src/assets/doc1.png'} 
                         alt={doctor.name} 
                         className="w-12 h-12 rounded-full mr-3 object-cover border-2 border-blue-200" 
                         onError={(e) => {

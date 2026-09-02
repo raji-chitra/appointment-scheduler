@@ -2,6 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const { isPasswordValid, getPasswordErrorMessage } = require('../utils/passwordValidator');
 
 const router = express.Router();
 
@@ -22,6 +23,14 @@ const registerHandler = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Please provide name, email, and password'
+      });
+    }
+
+    // Validate password strength
+    if (!isPasswordValid(password)) {
+      return res.status(400).json({
+        success: false,
+        message: getPasswordErrorMessage(password)
       });
     }
 

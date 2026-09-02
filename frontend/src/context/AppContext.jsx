@@ -149,23 +149,23 @@ const AppContextProvider = (props) => {
             const response = await appointmentsAPI.bookAppointment(appointmentData)
 
             if (response.success) {
-                // Refresh appointments list
-                    await getMyAppointments()
-                    console.log('Appointment booked successfully, returning success')
-                    // Redirect to My Appointments so user sees the booking immediately
-                    try {
-                        setTimeout(() => {
-                            window.location.href = '/my-appointments'
-                        }, 300)
-                    } catch (e) {
-                        console.warn('Redirect to /my-appointments failed after booking', e)
-                    }
-                    return { success: true, message: response.message, appointment: response.appointment }
+                await getMyAppointments()
+                console.log('Appointment booked successfully, returning success')
+                try {
+                    setTimeout(() => {
+                        window.location.href = '/my-appointments'
+                    }, 300)
+                } catch (e) {
+                    console.warn('Redirect to /my-appointments failed after booking', e)
+                }
+                return { success: true, message: response.message, appointment: response.appointment }
             }
+            return { success: false, message: response?.message || 'Failed to book appointment' }
         } catch (error) {
             console.error('Error booking appointment:', error)
-            toast.error(error.message || 'Failed to book appointment')
-            throw new Error(error.message || 'Booking failed')
+            const errorMsg = error?.message || error?.error || 'Failed to book appointment'
+            toast.error(errorMsg)
+            return { success: false, message: errorMsg }
         } finally {
             setLoading(false)
         }
@@ -212,40 +212,40 @@ const AppContextProvider = (props) => {
         setLoading(true)
 
         try {
-                const response = await appointmentsAPI.cancelAppointment(appointmentId)
-                console.log('Context: Cancel response:', response)
+            const response = await appointmentsAPI.cancelAppointment(appointmentId)
+            console.log('Context: Cancel response:', response)
 
-                if (response.success) {
-                    // Refresh the appointments list from server to keep state consistent
-                    try {
-                        await getMyAppointments()
-                    } catch (err) {
-                        // If refresh fails, fall back to a safe local update
-                        console.warn('Context: Failed to refresh appointments after cancel, applying local fallback', err)
-                        setAppointments(prev => {
-                            if (!Array.isArray(prev)) return []
-                            return prev.map(appointment =>
-                                appointment._id === appointmentId
-                                    ? { ...appointment, status: 'cancelled' }
-                                    : appointment
-                            )
-                        })
-                    }
-
-                    console.log('Context: Appointment cancelled and state refreshed')
-                    // Give UI a moment to update, then redirect to My Appointments
-                    try {
-                        setTimeout(() => {
-                            window.location.href = '/my-appointments'
-                        }, 300)
-                    } catch (e) {
-                        console.warn('Redirect to /my-appointments failed', e)
-                    }
-                    return { success: true, message: response.message }
-                } else {
-                    console.error('Context: Cancel failed:', response.message)
-                    return { success: false, message: response.message || 'Failed to cancel appointment' }
+            if (response.success) {
+                // Refresh the appointments list from server to keep state consistent
+                try {
+                    await getMyAppointments()
+                } catch (err) {
+                    // If refresh fails, fall back to a safe local update
+                    console.warn('Context: Failed to refresh appointments after cancel, applying local fallback', err)
+                    setAppointments(prev => {
+                        if (!Array.isArray(prev)) return []
+                        return prev.map(appointment =>
+                            appointment._id === appointmentId
+                                ? { ...appointment, status: 'cancelled' }
+                                : appointment
+                        )
+                    })
                 }
+
+                console.log('Context: Appointment cancelled and state refreshed')
+                // Give UI a moment to update, then redirect to My Appointments
+                try {
+                    setTimeout(() => {
+                        window.location.href = '/my-appointments'
+                    }, 300)
+                } catch (e) {
+                    console.warn('Redirect to /my-appointments failed', e)
+                }
+                return { success: true, message: response.message }
+            } else {
+                console.error('Context: Cancel failed:', response.message)
+                return { success: false, message: response.message || 'Failed to cancel appointment' }
+            }
         } catch (error) {
             console.error('Context: Error cancelling appointment:', error)
             return { success: false, message: error.message || 'Failed to cancel appointment' }
@@ -284,7 +284,7 @@ const AppContextProvider = (props) => {
         localStorage.removeItem('token')
         localStorage.removeItem('userData')
         // Navigate to role selection page
-        window.location.href = '/choose-login'
+        window.location.href = '/role-selection'
     }
 
     // Load appointments when user logs in
@@ -321,8 +321,8 @@ const AppContextProvider = (props) => {
 
     const value = {
         doctors,
-    currencySymbol,
-    formatCurrency,
+        currencySymbol,
+        formatCurrency,
         token,
         setToken,
         userData,

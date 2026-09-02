@@ -59,14 +59,7 @@ const MyProfile = () => {
     };
 
     try {
-      // --- If you have backend API uncomment this ---
-      /*
-      await fetch("http://localhost:5000/api/update-profile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(finalFormData),
-      });
-      */
+    
 
       // Save in localStorage
       const updatedUser = { ...storedUser, ...finalFormData };

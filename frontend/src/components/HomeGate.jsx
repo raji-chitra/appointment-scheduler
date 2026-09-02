@@ -8,7 +8,7 @@ const HomeGate = () => {
   const adminToken = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null
 
   if (!token && !adminToken) {
-    return <Navigate to="/choose-login" replace />
+    return <Navigate to="/role-selection" replace />
   }
 
   return <Home />

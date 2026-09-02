@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { authAPI } from '../services/api';
 
 const DoctorLogin = () => {
   const navigate = useNavigate();
@@ -19,19 +19,19 @@ const DoctorLogin = () => {
     setError('');
 
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/login', {
+      const res = await authAPI.login({
         email: formData.email,
         password: formData.password
       });
-      if (res.data.success && res.data.user?.role === 'doctor') {
-        localStorage.setItem('token', res.data.token);
-        localStorage.setItem('userData', JSON.stringify(res.data.user));
+      if (res.success && res.user?.role === 'doctor') {
+        localStorage.setItem('token', res.token);
+        localStorage.setItem('userData', JSON.stringify(res.user));
         navigate('/doctor-dashboard');
       } else {
         setError('Invalid doctor credentials');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed');
+      setError(err?.message || 'Login failed');
     } finally {
       setLoading(false);
     }

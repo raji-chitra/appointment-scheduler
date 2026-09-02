@@ -46,17 +46,16 @@ const MyAppointments = () => {
     setCancellingId(null)
   }
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (appointmentStatus) => {
     const statusClasses = {
-      confirmed: 'bg-green-100 text-green-800',
       pending: 'bg-yellow-100 text-yellow-800',
-      cancelled: 'bg-red-100 text-red-800',
-      completed: 'bg-blue-100 text-blue-800'
+      accepted: 'bg-green-100 text-green-800',
+      rejected: 'bg-red-100 text-red-800'
     }
 
     return (
-      <span className={`px-2 py-1 rounded text-xs ${statusClasses[status] || 'bg-gray-100 text-gray-800'}`}>
-        {status}
+      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusClasses[appointmentStatus] || 'bg-gray-100 text-gray-800'}`}>
+        {appointmentStatus ? appointmentStatus.charAt(0).toUpperCase() + appointmentStatus.slice(1) : 'Pending'}
       </span>
     )
   }
@@ -100,7 +99,7 @@ const MyAppointments = () => {
               <div key={appt._id || appt.id} className="bg-white p-6 rounded-lg shadow-md">
                 <div className="flex items-center mb-4">
                   <img 
-  src={doctor?.image ? (doctor.image.startsWith('http') ? doctor.image : `http://localhost:5000${doctor.image}`) : '/src/assets/doc1.png'} 
+  src={doctor?.image ? (doctor.image.startsWith('http') ? doctor.image : `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}${doctor.image}`) : '/src/assets/doc1.png'} 
   alt={doctor?.name || 'Doctor'} 
   className="w-16 h-16 rounded-full mr-4" 
   onError={(e) => {
@@ -114,7 +113,7 @@ const MyAppointments = () => {
                     <p className="text-sm text-gray-500">{doctor?.degree || ''}</p>
                   </div>
                   <div className="text-right">
-                    {getStatusBadge(appt.status)}
+                    {getStatusBadge(appt.appointmentStatus || appt.status)}
                     <p className="text-sm text-gray-500 mt-1">Fee: ₹{doctor?.fees || 'N/A'}</p>
                   </div>
                 </div>
@@ -139,6 +138,22 @@ const MyAppointments = () => {
                     </p>
                   </div>
                 </div>
+
+                {appt.appointmentStatus === 'rejected' && appt.rejectionReason && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-800">
+                      <strong>Rejection Reason:</strong> {appt.rejectionReason}
+                    </p>
+                  </div>
+                )}
+
+                {appt.appointmentStatus === 'pending' && (
+                  <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800">
+                      ⏳ <strong>Waiting for doctor's confirmation</strong> (Response required within 2 hours)
+                    </p>
+                  </div>
+                )}
 
                 {(appt.status === 'scheduled' || appt.status === 'confirmed') && (
                   <div className="flex gap-3">

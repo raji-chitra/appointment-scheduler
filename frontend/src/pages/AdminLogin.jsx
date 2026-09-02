@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { adminAPI } from '../services/api';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -19,19 +19,19 @@ const AdminLogin = () => {
     setError('');
 
     try {
-      const res = await axios.post('http://localhost:5000/api/admin/login', {
+      const res = await adminAPI.login({
         email: formData.email,
         password: formData.password
       });
-      if (res.data.success) {
-        localStorage.setItem('adminToken', res.data.token);
-        localStorage.setItem('adminUser', JSON.stringify(res.data.user));
+      if (res.success) {
+        localStorage.setItem('adminToken', res.token);
+        localStorage.setItem('adminUser', JSON.stringify(res.user));
         navigate('/admin-dashboard');
       } else {
-        setError(res.data.message || 'Invalid credentials');
+        setError(res.message || 'Invalid credentials');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed');
+      setError(err?.message || 'Login failed');
     } finally {
       setLoading(false);
     }

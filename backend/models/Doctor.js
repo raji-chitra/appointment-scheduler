@@ -9,6 +9,7 @@ const doctorSchema = new mongoose.Schema({
   experience: { type: Number, default: 0 },
   fees: { type: Number, required: true },
   image: { type: String, default: '' },
+  about: { type: String, default: '' },
   address: {
     line1: { type: String, default: '' },
     line2: { type: String, default: '' }
